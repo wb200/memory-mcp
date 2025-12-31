@@ -679,6 +679,32 @@ cd memory-mcp
 uv run pytest -v
 ```
 
+### MCP Inspector Testing
+
+Test the server interactively with the [MCP Inspector](https://github.com/modelcontextprotocol/inspector):
+
+```bash
+# Start the server in a separate terminal
+cd memory-mcp
+uv run python server.py
+
+# In another terminal, run the inspector
+npx @modelcontextprotocol/inspector http://localhost:3000
+```
+
+Or test via stdio:
+```bash
+cd memory-mcp
+uv run python -c "
+import asyncio
+from server import mcp
+async def test():
+    result = await mcp.tools['memory_health']()
+    print(result)
+asyncio.run(test())
+"
+```
+
 ### Test Database
 
 Tests use an isolated database separate from production:

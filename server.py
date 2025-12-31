@@ -111,7 +111,8 @@ def _get_api_key() -> str:
     if secrets_path.exists():
         return secrets_path.read_text().strip()
     raise ValueError(
-        "GOOGLE_API_KEY not found. Set environment variable or create ~/.secrets/GOOGLE_API_KEY"
+        "GOOGLE_API_KEY not found. Set environment variable or create ~/.secrets/GOOGLE_API_KEY. "
+        "Tip: Add to your MCP config env section or export GOOGLE_API_KEY=your-key"
     )
 
 
@@ -548,7 +549,23 @@ async def memory_save(
 
     embedding = await get_embedding(content)
     if embedding is None:
-        return "Error: Failed to generate embedding. Check API key configuration and network connectivity."
+        provider = CONFIG.embedding_provider.lower()
+        if provider == "ollama":
+            return (
+                "Error: Failed to generate embedding. \n"
+                "Next steps:\n"
+                "1. Check if Ollama is running: `ollama list`\n"
+                "2. Start Ollama: `ollama serve`\n"
+                "3. Pull embedding model: `ollama pull qwen3-embedding:0.6b`\n"
+                "4. Or switch to Google: set EMBEDDING_PROVIDER=google"
+            )
+        return (
+            "Error: Failed to generate embedding.\n"
+            "Next steps:\n"
+            "1. Check GOOGLE_API_KEY is set correctly\n"
+            "2. Verify network connectivity\n"
+            "3. Check API quotas at aistudio.google.com"
+        )
 
     table = get_table()
 
@@ -801,7 +818,10 @@ async def memory_update(
     if content is not None:
         embedding = await get_embedding(new_content)
         if embedding is None:
-            return "Error: Failed to generate embedding for updated content"
+            return (
+                "Error: Failed to generate embedding for updated content.\n"
+                "Next steps: Check Ollama/Google API configuration."
+            )
         new_vector = embedding
     else:
         new_vector = existing["vector"]
@@ -982,6 +1002,39 @@ async def memory_health() -> str:
         lines.append("TTL cleanup: ✗ Not active")
 
     return "\n".join(lines)
+
+
+# =============================================================================
+# MCP Resources
+# =============================================================================
+
+
+@mcp.resource("memory://stats")
+def memory_stats_resource() -> str:
+    """Memory statistics as a read-only resource."""
+    table = get_table()
+    total = table.count_rows()
+
+    if total == 0:
+        return "No memories stored yet."
+
+    category_counts: dict[str, int] = {}
+    arrow_table = None
+    try:
+        arrow_table = table.to_arrow(columns=["category"])
+    except Exception:
+        pass
+
+    if arrow_table is not None:
+        for category in arrow_table.to_pydict().get("category", []):
+            if category is not None:
+                category_counts[category] = category_counts.get(category, 0) + 1
+
+    lines = [f"# Memory Stats\n", f"Total: {total}\n\nCategories:\n"]
+    for cat, count in sorted(category_counts.items()):
+        lines.append(f"- {cat}: {count}")
+
+    return "".join(lines)
 
 
 # =============================================================================
