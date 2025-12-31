@@ -14,11 +14,13 @@ ITEMS_PER_PAGE = 10
 
 
 def get_memories() -> list[dict]:
-    """Fetch all memories."""
+    """Fetch all memories, sorted by newest first."""
     db = lancedb.connect(str(DB_PATH))
     table = db.open_table("memories")
     arrow_table = table.to_arrow()
-    return arrow_table.to_pylist()
+    memories = arrow_table.to_pylist()
+    # Sort by created_at descending (newest first)
+    return sorted(memories, key=lambda m: m.get("created_at", ""), reverse=True)
 
 
 HTML = """
