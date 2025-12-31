@@ -5,7 +5,7 @@ Real-time Memory Extractor Hook for Droid - LanceDB Version
 Automatically extracts and saves memory-worthy insights from Droid actions
 using Gemini Flash as a selective judge.
 
-Shares database with droid-memory MCP server for seamless auto-save + retrieval.
+Shares database with memory MCP server for seamless auto-save + retrieval.
 """
 
 import json

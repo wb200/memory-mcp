@@ -1,6 +1,6 @@
 # Memory-MCP Server
 
-**Version**: 3.3.0  
+**Version**: 3.5.0  
 **Status**: Production-Ready  
 **License**: MIT
 
@@ -75,7 +75,7 @@ Recall Memory → Hybrid Search (Vector + BM25) → RRF Fusion → Neural Rerank
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      MEMORY-MCP v3.3.0                           │
+│                      MEMORY-MCP v3.5.0                           │
 └─────────────────────────────────────────────────────────────────┘
 
    Agent/User
@@ -407,10 +407,10 @@ The hook system enables **automatic memory extraction** from agent actions and *
 
 ### Hooks Overview
 
-| Hook | File | Trigger | Purpose |
-|------|------|---------|---------|
-| **PostToolUse** | `.factory/hooks/memory-extractor.py` | After Edit/Write/Bash | Auto-save memory-worthy insights |
-| **UserPromptSubmit** | `.factory/hooks/session_start_recall.py` | On `/resume`, `/sessions`, etc. | Inject memory context at session start |
+| Hook Event | File | Trigger | Purpose |
+|------------|------|---------|---------|
+| **PostToolUse** | `.factory/hooks/memory-extractor.py` | After Edit/Write/Bash/MultiEdit | Auto-save memory-worthy insights |
+| **SessionStart** | `.factory/hooks/session_start_recall.py` | On startup, `/resume`, `/clear`, compact | Inject memory context at session start |
 
 ### How They Work
 
@@ -422,12 +422,12 @@ The hook system enables **automatic memory extraction** from agent actions and *
 4. **Checks** for duplicates (90% similarity threshold)
 5. **Saves** automatically to the same LanceDB database
 
-**2. session_start_recall.py (UserPromptSubmit)**
+**2. session_start_recall.py (SessionStart)**
 
-1. **Triggers** when user submits session start commands (`/resume`, `/continue`, `/sessions`, `/session`)
+1. **Triggers** on session events: `startup`, `resume` (`/resume`), `clear` (`/clear`), `compact`
 2. **Retrieves** memories for the current project from LanceDB
 3. **Generates** a "Project Highlights" summary using Gemini
-4. **Outputs** memories and summary to stdout (injected as context)
+4. **Outputs** JSON with `additionalContext` field (injected into agent context)
 
 ### Installation
 
@@ -447,18 +447,20 @@ The hook system enables **automatic memory extraction** from agent actions and *
         "hooks": [
           {
             "type": "command",
-            "command": "\"$FACTORY_PROJECT_DIR\"/.factory/hooks/memory-extractor.py",
+            "command": "/path/to/memory-mcp/.factory/hooks/memory-extractor.py",
             "timeout": 30
           }
         ]
       }
     ],
-    "UserPromptSubmit": [
+    "SessionStart": [
       {
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "\"$FACTORY_PROJECT_DIR\"/.factory/hooks/session_start_recall.py"
+            "command": "/path/to/memory-mcp/.factory/hooks/session_start_recall.py",
+            "timeout": 30
           }
         ]
       }
@@ -467,7 +469,20 @@ The hook system enables **automatic memory extraction** from agent actions and *
 }
 ```
 
-> **Note**: Using `$FACTORY_PROJECT_DIR` ensures portability across different systems and user environments.
+> **Important**: Use **absolute paths** for hook commands. The `$FACTORY_PROJECT_DIR` variable only works when hooks are triggered from within that project directory. For global hooks that should work across all projects, use the full path to where memory-mcp is installed.
+
+### Factory/Droid Hook Events Reference
+
+| Event | Matchers | When It Fires |
+|-------|----------|---------------|
+| `SessionStart` | `startup`, `resume`, `clear`, `compact` | New session, `/resume`, `/clear`, or context compaction |
+| `PostToolUse` | Tool names (regex) | After any matched tool executes successfully |
+| `PreToolUse` | Tool names (regex) | Before tool execution (can block/modify) |
+| `UserPromptSubmit` | N/A | When user submits a prompt (NOT on slash commands) |
+| `Stop` | N/A | When agent finishes responding |
+| `Notification` | N/A | When agent sends notifications |
+
+> **Note**: `/resume` triggers `SessionStart` with `resume` matcher, NOT `UserPromptSubmit`. This is a common configuration mistake.
 
 ### Project-Based Hooks
 
@@ -827,12 +842,12 @@ dedup_threshold: float = 0.85  # Try 85% instead of 90%
 2. Verify settings.json has correct `$FACTORY_PROJECT_DIR` path
 3. Ensure you're using tools that match the hook matcher (Edit|Write|Bash|MultiEdit)
 
-**For UserPromptSubmit hooks (session_start_recall):**
+**For SessionStart hooks (session_start_recall):**
 
 1. Check debug log: `cat memory-mcp/.factory/hooks/hook-debug.log`
-2. The hook triggers on: `/resume`, `/continue`, `/sessions`, `/session`
-3. Verify settings.json has `UserPromptSubmit` event configured
-4. Note: Hook output may not always be visible in conversation (Droid limitation)
+2. The hook triggers on: startup, `/resume`, `/clear`, compact
+3. Verify settings.json has `SessionStart` event with matcher `startup|resume|clear|compact`
+4. Ensure hook outputs valid JSON with `hookSpecificOutput.additionalContext` field
 
 ### Embedding dimension mismatch
 
@@ -939,7 +954,9 @@ MIT License - See LICENSE file.
 ---
 
 **Version History**:
-- **v3.3.0** - Project-based hooks, UserPromptSubmit for memory recall, $FACTORY_PROJECT_DIR portability, dual hooks (auto-save + session start recall)
+- **v3.5.0** - Renamed MCP server from `droid-memory` to `memory` (agent-agnostic), fixed `hookEventName` camelCase bug, silent context injection (removed verbose stderr)
+- **v3.4.0** - Fixed hook configuration: SessionStart event (not UserPromptSubmit) for memory recall on `/resume`, JSON output format for context injection, comprehensive hook documentation
+- **v3.3.0** - Project-based hooks, dual hooks (auto-save + session start recall)
 - **v3.2.0** - SOTA reranker (mxbai-reranker-base-v2), path updates
 - **v3.1.0** - Tantivy FTS, embedding cache, TTL cleanup
 - **v3.0.0** - Ollama integration, 1024-dim embeddings

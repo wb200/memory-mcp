@@ -446,7 +446,7 @@ class TestMCPConfig:
         with mcp_config_path.open() as f:
             config = json.load(f)
         assert "mcpServers" in config
-        assert "droid-memory" in config["mcpServers"]
+        assert "memory" in config["mcpServers"]
 
 
 # =============================================================================

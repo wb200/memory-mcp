@@ -383,7 +383,7 @@ def main():
         input_data = json.load(sys.stdin)
         log_debug(f"Received stdin: {json.dumps(input_data)[:500]}")
         if input_data:
-            hook_event = input_data.get("hook_event_name", "")
+            hook_event = input_data.get("hookEventName", "")  # Factory uses camelCase
             
             # For SessionStart events
             if hook_event == "SessionStart":
@@ -443,9 +443,31 @@ def main():
         summary = generate_project_summary(all_memories, project_name)
         save_cached_summary(project_id, summary)
 
-    # Output
-    print_project_highlights(summary, project_name)
-    print(format_recent_memories(recent_memories))
+    # Build context output
+    context_parts = []
+    
+    # Add project highlights
+    border = "═" * 60
+    context_parts.append(f"\n{border}")
+    context_parts.append(f"║  PROJECT HIGHLIGHTS - {project_name}")
+    context_parts.append(f"{border}")
+    context_parts.append(f"\n{summary}\n")
+    context_parts.append(f"{border}\n")
+    
+    # Add recent memories
+    context_parts.append(format_recent_memories(recent_memories))
+    
+    additional_context = "\n".join(context_parts)
+    
+    # Output JSON for SessionStart hook (per Factory docs)
+    # This injects context into the agent via hookSpecificOutput.additionalContext
+    output = {
+        "hookSpecificOutput": {
+            "hookEventName": "SessionStart",
+            "additionalContext": additional_context
+        }
+    }
+    print(json.dumps(output))
 
     elapsed = time.time() - start_time
     print(f"[session-start-recall] Completed in {elapsed:.2f}s", file=sys.stderr)

@@ -9,3 +9,50 @@
 [2025-12-31T15:54:08.449559] === Hook invoked ===
 [2025-12-31T15:54:08.451202] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "ok we have made a number of small fixes. review the work done so far. update the @README.md accordingly. especially all the changes around hooks. that was the main fix. then commit and push to gith
 [2025-12-31T15:54:08.451258] No new session detected, exiting
+[2025-12-31T15:58:06.532764] === Hook invoked ===
+[2025-12-31T15:58:06.534791] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "eh, the top part of the @README.md says \"Memory-MCP Server\nVersion: 3.2.0\nStatus: Production-Ready\nLicense: MIT\n\nA state-of-the-art persistent memory system for AI agents using hybrid search 
+[2025-12-31T15:58:06.535196] No new session detected, exiting
+[2025-12-31T15:59:50.755105] === Hook invoked ===
+[2025-12-31T15:59:50.756671] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "the settings.json in the ~/.factory folder is not aware of the new hooks location. please make sure all settings for factory with respect to memory-mcp are fully updated and always know where to lo
+[2025-12-31T15:59:50.756701] No new session detected, exiting
+[2025-12-31T16:03:14.974917] === Hook invoked ===
+[2025-12-31T16:03:14.975702] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "the settings.json in the ~/.factory folder is not aware of the new hooks location. check the definition for hooks and the location for the hook py files ... please make sure all settings for factor
+[2025-12-31T16:03:14.975737] No new session detected, exiting
+[2025-12-31T16:06:29.416912] === Hook invoked ===
+[2025-12-31T16:06:29.421322] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "ok. let's tackle the issue whether the hooks are being triggered properly based on the trigger conditions that I expect to make them work. Just to let you know, I just used the /resume slash comman
+[2025-12-31T16:06:29.421434] No new session detected, exiting
+[2025-12-31T16:08:54.767239] === Hook invoked ===
+[2025-12-31T16:08:54.767351] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "ok sounds good. make those changes. Also make sure you add this to the @README.md so that all users using factory droid know how to properly configure their hooks.", "hasImages": false}
+[2025-12-31T16:08:54.767365] No new session detected, exiting
+[2025-12-31T16:13:18.685662] === Hook invoked ===
+[2025-12-31T16:13:18.685781] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "ok, can we add /sessions to the SessionStart matcher? ... also what does `session_start_recall.py` do exactly now? only inject context silently via JSON or does it actually appear on terminal scree
+[2025-12-31T16:13:18.685795] No new session detected, exiting
+[2025-12-31T16:15:42.640527] === Hook invoked ===
+[2025-12-31T16:15:42.640644] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "ok i will test this by shutting down this session, closing the terminal and re-starting / resuming the session ... thereafter please confirm whether the hook was triggered as expected ... is this f
+[2025-12-31T16:15:42.640658] No new session detected, exiting
+[2025-12-31T16:16:27.587312] === Hook invoked ===
+[2025-12-31T16:16:27.587463] Received stdin: {"sessionId": "58f64e0e-7c86-412d-b7d3-ac8301276881", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/58f64e0e-7c86-412d-b7d3-ac8301276881.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "SessionStart", "source": "startup", "CLAUDE_ENV_FILE": "/home/wb200/.factory/temp/env/droid-env-58f64e0e-7c86-412d-b7d3-ac8301276881.sh"}
+[2025-12-31T16:16:27.587477] No new session detected, exiting
+[2025-12-31T16:16:36.348779] === Hook invoked ===
+[2025-12-31T16:16:36.348886] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "SessionStart", "source": "resume", "CLAUDE_ENV_FILE": "/home/wb200/.factory/temp/env/droid-env-f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.sh"}
+[2025-12-31T16:16:36.348900] No new session detected, exiting
+[2025-12-31T16:24:20.091670] === Hook invoked ===
+[2025-12-31T16:24:20.092092] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "SessionStart", "source": "resume", "CLAUDE_ENV_FILE": "/home/wb200/.factory/temp/env/droid-env-f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.sh"}
+[2025-12-31T16:24:20.092137] SessionStart event (source: resume)
+[2025-12-31T16:24:20.129172] Hook completed successfully in 0.04s
+[2025-12-31T16:24:20.768089] === Hook invoked ===
+[2025-12-31T16:24:20.768283] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "SessionStart", "source": "resume", "CLAUDE_ENV_FILE": "/home/wb200/.factory/temp/env/droid-env-f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.sh"}
+[2025-12-31T16:24:20.768312] SessionStart event (source: resume)
+[2025-12-31T16:24:20.804383] Hook completed successfully in 0.04s
+[2025-12-31T16:27:26.930792] === Hook invoked ===
+[2025-12-31T16:27:26.930972] Received stdin: {"hookEventName": "SessionStart", "source": "resume", "cwd": "/home/wb200/projects/memory-mcp"}
+[2025-12-31T16:27:26.932383] SessionStart event (source: resume)
+[2025-12-31T16:27:27.015138] Hook completed successfully in 0.08s
+[2025-12-31T16:35:44.884432] === Hook invoked ===
+[2025-12-31T16:35:44.884891] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-low", "hookEventName": "SessionStart", "source": "resume", "CLAUDE_ENV_FILE": "/home/wb200/.factory/temp/env/droid-env-f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.sh"}
+[2025-12-31T16:35:44.884934] SessionStart event (source: resume)
+[2025-12-31T16:35:54.597204] Hook completed successfully in 9.71s
+[2025-12-31T16:35:55.595828] === Hook invoked ===
+[2025-12-31T16:35:55.595980] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-low", "hookEventName": "SessionStart", "source": "resume", "CLAUDE_ENV_FILE": "/home/wb200/.factory/temp/env/droid-env-f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.sh"}
+[2025-12-31T16:35:55.596029] SessionStart event (source: resume)
+[2025-12-31T16:35:55.635602] Hook completed successfully in 0.04s

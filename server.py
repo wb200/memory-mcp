@@ -505,7 +505,7 @@ def _rrf_fusion(vector_results: list[dict], fts_results: list[dict], k: int = 60
 # =============================================================================
 
 mcp = FastMCP(
-    "droid-memory",
+    "memory",
     instructions="Persistent memory with LanceDB TRUE hybrid search (vector + BM25 RRF fusion) and neural reranking",
 )
 
