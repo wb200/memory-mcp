@@ -740,6 +740,29 @@ The test database is automatically created and wiped before each test run. It's 
 
 ---
 
+## Web Viewer
+
+A browser-based memory viewer is included for human access:
+
+```bash
+# Install with Flask
+uv add --group optional flask
+
+# Run the viewer
+uv run memory-viewer
+# Or: python memory_viewer.py
+
+# Open in browser
+open http://localhost:5000
+```
+
+The viewer shows:
+- All memories with category color coding
+- Search/filter functionality
+- Tags and metadata display
+
+---
+
 ## Troubleshooting
 
 ### "GOOGLE_API_KEY not found"
