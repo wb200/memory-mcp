@@ -45,6 +45,11 @@ from server import (
     smart_summarize,
 )
 
+# CRITICAL: Reset CONFIG.db_path because the Config dataclass evaluates
+# its default at class definition time, not at runtime.
+# Use object.__setattr__ because Config is frozen=True.
+object.__setattr__(server_module.CONFIG, "db_path", TEST_DB_PATH)
+
 RANDOM_WORDS = [
     "quantum",
     "neural",
@@ -78,8 +83,6 @@ def unique_content(base: str) -> str:
 @pytest.fixture(autouse=True)
 async def setup_db():
     """Initialize isolated test database."""
-    # Clean up any existing test database first
-    os.environ["LANCEDB_MEMORY_PATH"] = str(TEST_DB_PATH)
     import shutil
 
     server_module._db = None
