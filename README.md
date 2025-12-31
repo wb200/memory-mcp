@@ -684,10 +684,21 @@ cd memory-mcp
 uv run pytest -v
 ```
 
+### Test Database
+
+Tests use an isolated database separate from production:
+
+| Variable | Default Location |
+|----------|------------------|
+| `LANCEDB_MEMORY_PATH` (production) | `~/.memory-mcp/lancedb-memory` |
+| `LANCEDB_MEMORY_TEST_PATH` (tests) | `./lancedb-memory-test` (project folder) |
+
+The test database is automatically created and wiped before each test run. It's excluded from git via `.gitignore`.
+
 ### Current Test Results
 
 ```
-30 passed in 56s
+30 passed in 37s
 ```
 
 ### Test Suites

@@ -24,7 +24,10 @@ if secrets_path.exists():
     os.environ["GOOGLE_API_KEY"] = secrets_path.read_text().strip()
 
 # TEST DATABASE ISOLATION (set before importing server)
-TEST_DB_PATH = Path.home() / ".factory" / "lancedb-memory-test"
+# Use project-relative path, configurable via LANCEDB_MEMORY_TEST_PATH
+TEST_DB_PATH = Path(
+    os.environ.get("LANCEDB_MEMORY_TEST_PATH", Path(__file__).parent / "lancedb-memory-test")
+)
 os.environ["LANCEDB_MEMORY_PATH"] = str(TEST_DB_PATH)
 
 import server as server_module
