@@ -1031,12 +1031,20 @@ async def memory_session_start() -> str:
         if len(parts) >= 2:
             project_name = parts[-1].replace(".git", "")
 
+    # Get possible project identifiers (git remote or path)
+    project_dir = str(Path.cwd())
+    project_ids = {project_id}
+    
+    # If using git remote, also check for path-based project_id (legacy memories)
+    if "github.com" in project_id:
+        project_ids.add(project_dir)
+
     # Get all project memories
     table = get_table()
     try:
         # Use search().limit() to get all memories (to_pydict has limits)
         all_rows = table.search().limit(1000).to_list()
-        project_memories = [m for m in all_rows if m.get("project_id") == project_id]
+        project_memories = [m for m in all_rows if m.get("project_id") in project_ids]
         project_memories.sort(key=lambda m: m.get("created_at", ""), reverse=True)
     except Exception as e:
         return f"Error fetching memories: {e}"
