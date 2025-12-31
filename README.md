@@ -403,46 +403,62 @@ memory_health()
 
 ## Hook System (Auto-Save)
 
-The hook system enables **automatic memory extraction** from agent actions. This is optional but recommended for hands-free learning.
+The hook system enables **automatic memory extraction** from agent actions and **memory recall at session start** for context injection. This is optional but recommended for hands-free learning.
 
-### How It Works
+### Hooks Overview
 
-The `hooks/memory-extractor.py` hook:
+| Hook | File | Trigger | Purpose |
+|------|------|---------|---------|
+| **PostToolUse** | `.factory/hooks/memory-extractor.py` | After Edit/Write/Bash | Auto-save memory-worthy insights |
+| **UserPromptSubmit** | `.factory/hooks/session_start_recall.py` | On `/resume`, `/sessions`, etc. | Inject memory context at session start |
 
-1. **Triggers** after tool executions (Edit, Write, Bash, MultiEdit)
+### How They Work
+
+**1. memory-extractor.py (PostToolUse)**
+
+1. **Triggers** after tool executions (Edit, Write, Bash, MultiEdit, MCP tiger tools)
 2. **Analyzes** the action using an LLM judge (Gemini Flash)
 3. **Extracts** category, content, and tags if memory-worthy
 4. **Checks** for duplicates (90% similarity threshold)
 5. **Saves** automatically to the same LanceDB database
 
+**2. session_start_recall.py (UserPromptSubmit)**
+
+1. **Triggers** when user submits session start commands (`/resume`, `/continue`, `/sessions`, `/session`)
+2. **Retrieves** memories for the current project from LanceDB
+3. **Generates** a "Project Highlights" summary using Gemini
+4. **Outputs** memories and summary to stdout (injected as context)
+
 ### Installation
 
 **For Factory/Droid users:**
 
-1. **Update the shebang** in `hooks/memory-extractor.py` to point to your venv:
-```bash
-# Edit the first line of hooks/memory-extractor.py to:
-#!/path/to/memory-mcp/.venv/bin/python3
-```
-> **Important**: The hook requires dependencies (lancedb, numpy, etc.) from the project's virtual environment. Using `#!/usr/bin/env python3` will fail with `ModuleNotFoundError` unless those packages are installed system-wide.
+1. **Hooks are located in the project folder** at `.factory/hooks/`:
+   - `memory-mcp/.factory/hooks/memory-extractor.py`
+   - `memory-mcp/.factory/hooks/session_start_recall.py`
 
-2. Symlink or copy the hook:
-```bash
-ln -s /path/to/memory-mcp/hooks/memory-extractor.py ~/.factory/hooks/
-```
-
-3. Configure in `~/.factory/settings.json`:
+2. **Configure in `~/.factory/settings.json`**:
 ```json
 {
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|Bash|MultiEdit",
+        "matcher": "Edit|Write|Bash|MultiEdit|mcp__tiger__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.factory/hooks/memory-extractor.py",
+            "command": "\"$FACTORY_PROJECT_DIR\"/.factory/hooks/memory-extractor.py",
             "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$FACTORY_PROJECT_DIR\"/.factory/hooks/session_start_recall.py"
           }
         ]
       }
@@ -451,10 +467,24 @@ ln -s /path/to/memory-mcp/hooks/memory-extractor.py ~/.factory/hooks/
 }
 ```
 
-4. Make executable:
-```bash
-chmod +x ~/.factory/hooks/memory-extractor.py
+> **Note**: Using `$FACTORY_PROJECT_DIR` ensures portability across different systems and user environments.
+
+### Project-Based Hooks
+
+Hooks are stored in the project folder (version controlled):
 ```
+memory-mcp/
+├── .factory/
+│   └── hooks/
+│       ├── memory-extractor.py      # Auto-save after tool use
+│       └── session_start_recall.py  # Memory recall at session start
+└── server.py
+```
+
+This approach:
+- Version controls hooks with the project
+- Makes configuration portable (no hardcoded paths)
+- Enables team sharing via git
 
 ### LLM Judge Criteria
 
@@ -791,9 +821,18 @@ dedup_threshold: float = 0.85  # Try 85% instead of 90%
 
 ### Hook not triggering
 
-1. Check permissions: `chmod +x ~/.factory/hooks/memory-extractor.py`
-2. Check logs: `tail -f ~/.factory/logs/memory-extractor.log`
-3. Verify settings.json configuration
+**For PostToolUse hooks (memory-extractor):**
+
+1. Check logs: `tail -f ~/.factory/logs/memory-extractor.log`
+2. Verify settings.json has correct `$FACTORY_PROJECT_DIR` path
+3. Ensure you're using tools that match the hook matcher (Edit|Write|Bash|MultiEdit)
+
+**For UserPromptSubmit hooks (session_start_recall):**
+
+1. Check debug log: `cat memory-mcp/.factory/hooks/hook-debug.log`
+2. The hook triggers on: `/resume`, `/continue`, `/sessions`, `/session`
+3. Verify settings.json has `UserPromptSubmit` event configured
+4. Note: Hook output may not always be visible in conversation (Droid limitation)
 
 ### Embedding dimension mismatch
 
@@ -900,6 +939,7 @@ MIT License - See LICENSE file.
 ---
 
 **Version History**:
+- **v3.3.0** - Project-based hooks, UserPromptSubmit for memory recall, $FACTORY_PROJECT_DIR portability, dual hooks (auto-save + session start recall)
 - **v3.2.0** - SOTA reranker (mxbai-reranker-base-v2), path updates
 - **v3.1.0** - Tantivy FTS, embedding cache, TTL cleanup
 - **v3.0.0** - Ollama integration, 1024-dim embeddings

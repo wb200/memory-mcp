@@ -1034,8 +1034,9 @@ async def memory_session_start() -> str:
     # Get all project memories
     table = get_table()
     try:
-        all_memories = table.to_pydict()
-        project_memories = [m for m in all_memories if m.get("project_id") == project_id]
+        # Use search().limit() to get all memories (to_pydict has limits)
+        all_rows = table.search().limit(1000).to_list()
+        project_memories = [m for m in all_rows if m.get("project_id") == project_id]
         project_memories.sort(key=lambda m: m.get("created_at", ""), reverse=True)
     except Exception as e:
         return f"Error fetching memories: {e}"

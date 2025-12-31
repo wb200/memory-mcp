@@ -1,0 +1,11 @@
+[2025-12-31T15:43:40.844469] === Hook invoked ===
+[2025-12-31T15:43:40.844739] Received stdin: {"hook_event_name": "UserPromptSubmit", "session_id": "test-session-123", "prompt": "/resume"}
+[2025-12-31T15:43:40.844762] UserPromptSubmit event (prompt: /resume)
+[2025-12-31T15:43:40.844771] Detected session start command: /resume
+[2025-12-31T15:43:40.877805] Hook completed successfully in 0.03s
+[2025-12-31T15:47:33.637602] === Hook invoked ===
+[2025-12-31T15:47:33.637718] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "please check the file locations of all factory hooks again. they should be in ~/projects/memory-mcp/.factory/hooks ... but I only see session_start_recall.py ... what happened to memory-extractor.p
+[2025-12-31T15:47:33.637732] No new session detected, exiting
+[2025-12-31T15:54:08.449559] === Hook invoked ===
+[2025-12-31T15:54:08.451202] Received stdin: {"sessionId": "f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93", "transcriptPath": "/home/wb200/.factory/sessions/-home-wb200-projects-memory-mcp/f5cda4e2-7e9f-42e6-9e29-05e8d0e0ec93.jsonl", "cwd": "/home/wb200/projects/memory-mcp", "permissionMode": "auto-medium", "hookEventName": "UserPromptSubmit", "prompt": "ok we have made a number of small fixes. review the work done so far. update the @README.md accordingly. especially all the changes around hooks. that was the main fix. then commit and push to gith
+[2025-12-31T15:54:08.451258] No new session detected, exiting
