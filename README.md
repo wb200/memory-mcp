@@ -803,8 +803,32 @@ open http://localhost:5000
 
 The viewer shows:
 - All memories with category color coding
-- Search/filter functionality
+- Search/filter functionality by project and keyword
 - Tags and metadata display
+- Pagination for large memory sets
+
+### Run as Persistent Service
+
+Keep the viewer always running (survives terminal closures):
+
+```bash
+# Install as systemd user service
+./install-service.sh
+
+# Enable auto-start on boot (optional)
+loginctl enable-linger $USER
+
+# Access anytime at http://localhost:5000
+```
+
+Service management:
+```bash
+systemctl --user status memory-viewer   # Check status
+systemctl --user restart memory-viewer  # Restart
+journalctl --user -u memory-viewer -f   # View logs
+```
+
+See [SERVICE.md](SERVICE.md) for detailed service documentation.
 
 ---
 

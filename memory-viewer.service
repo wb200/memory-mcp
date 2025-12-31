@@ -1,0 +1,19 @@
+[Unit]
+Description=Memory MCP Viewer (Flask Server)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/wb200/projects/memory-mcp
+ExecStart=/home/wb200/.local/bin/uv run memory_viewer.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment
+Environment="FLASK_ENV=production"
+Environment="PATH=/home/wb200/.local/bin:/usr/local/bin:/usr/bin:/bin"
+
+[Install]
+WantedBy=default.target
