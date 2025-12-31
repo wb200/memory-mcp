@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive test suite for Droid Memory MCP Server (LanceDB).
+Comprehensive test suite for Memory MCP Server (LanceDB).
 
 Run with: pytest test_server.py -v
 Or manual: python test_server.py

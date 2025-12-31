@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Droid Memory MCP Server - LanceDB Hybrid Search Implementation
+Memory MCP Server - LanceDB Hybrid Search Implementation
 
 Provides persistent memory with TRUE hybrid search (vector + BM25) using:
 - FastMCP for clean, idiomatic MCP server patterns
