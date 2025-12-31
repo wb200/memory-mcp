@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/wb200/projects/memory-mcp/.venv/bin/python3
 """
 Real-time Memory Extractor Hook for Droid - LanceDB Version
 
