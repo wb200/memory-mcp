@@ -19,6 +19,7 @@ import subprocess
 import sys
 import threading
 import uuid
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -1004,6 +1005,125 @@ async def memory_health() -> str:
     return "\n".join(lines)
 
 
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+    }
+)
+async def memory_session_start() -> str:
+    """Get project context at session start: recent memories + AI summary.
+
+    Call this at the start of a session to recall project-specific context.
+    Includes:
+    - Project Highlights summary (architecture, tech stack, setup, patterns)
+    - Last 10 memories for immediate context
+
+    Use this instead of manually recalling memories.
+    """
+    from google.genai import types
+
+    project_id = get_project_id()
+    project_name = Path.cwd().name
+    if "github.com" in project_id:
+        parts = project_id.split("/")
+        if len(parts) >= 2:
+            project_name = parts[-1].replace(".git", "")
+
+    # Get all project memories
+    table = get_table()
+    try:
+        all_memories = table.to_pydict()
+        project_memories = [m for m in all_memories if m.get("project_id") == project_id]
+        project_memories.sort(key=lambda m: m.get("created_at", ""), reverse=True)
+    except Exception as e:
+        return f"Error fetching memories: {e}"
+
+    if not project_memories:
+        return f"No memories found for project '{project_name}'. Start building context!"
+
+    # Recent memories (last 10)
+    recent = project_memories[:10]
+
+    # Generate summary using Gemini
+    client = get_genai_client()
+    summary = ""
+
+    if client and len(project_memories) >= 3:
+        memory_texts = []
+        for i, m in enumerate(project_memories[:30], 1):  # Use top 30 for summary
+            cat = m.get("category", "UNKNOWN")
+            content = m.get("content", "")
+            tags = m.get("tags", "[]")
+            memory_texts.append(f"[{i}] [{cat}] {content} (tags: {tags})")
+
+        memories_block = "\n".join(memory_texts)
+
+        prompt = f"""Analyze these project memories and create a concise summary.
+
+Project: {project_name}
+Total memories: {len(project_memories)}
+
+MEMORIES:
+{memories_block}
+
+Create sections for:
+## Architecture - Key patterns, design decisions
+## Tech Stack - Languages, frameworks, tools
+## Setup - Install steps, env vars, API keys
+## Common Patterns - Conventions, best practices
+## Debug History - Issues and fixes
+
+Keep it brief and actionable. Use markdown."""
+
+        try:
+            response = client.models.generate_content(
+                model=CONFIG.llm_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=1024,
+                ),
+            )
+            summary = response.text.strip()
+        except Exception as e:
+            summary = f"[Summary unavailable: {e}]"
+
+    # Format output
+    lines = [
+        "═" * 60,
+        f"║  PROJECT HIGHLIGHTS - {project_name}",
+        "═" * 60,
+        "",
+    ]
+
+    if summary:
+        lines.append(summary)
+        lines.append("")
+        lines.append("═" * 60)
+
+    lines.append("RECENT MEMORIES (Last 10)")
+    lines.append("═" * 60, "")
+
+    for m in recent:
+        cat = m.get("category", "UNKNOWN")[:1].upper()
+        content = m.get("content", "")
+        tags = json.loads(m.get("tags", "[]"))
+        created = m.get("created_at", "")[:19].replace("T", " ")
+
+        if len(content) > 120:
+            content = content[:120] + "..."
+
+        lines.append(f"[{cat}] {content}")
+        if tags:
+            lines.append(f"    Tags: {', '.join(tags[:5])}")
+        lines.append(f"    {created}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 # =============================================================================
 # MCP Resources
 # =============================================================================
@@ -1020,17 +1140,15 @@ def memory_stats_resource() -> str:
 
     category_counts: dict[str, int] = {}
     arrow_table = None
-    try:
+    with suppress(Exception):
         arrow_table = table.to_arrow(columns=["category"])
-    except Exception:
-        pass
 
     if arrow_table is not None:
         for category in arrow_table.to_pydict().get("category", []):
             if category is not None:
                 category_counts[category] = category_counts.get(category, 0) + 1
 
-    lines = [f"# Memory Stats\n", f"Total: {total}\n\nCategories:\n"]
+    lines = ["# Memory Stats\n", f"Total: {total}\n\nCategories:\n"]
     for cat, count in sorted(category_counts.items()):
         lines.append(f"- {cat}: {count}")
 

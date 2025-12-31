@@ -379,9 +379,9 @@ class TestConcurrency:
         results = await asyncio.gather(*tasks)
 
         # All should return valid results (starts with "Found" or "No memories")
-        assert all(
-            r.startswith("Found") or r.startswith("No memories") for r in results
-        ), f"Recall errors: {results}"
+        assert all(r.startswith("Found") or r.startswith("No memories") for r in results), (
+            f"Recall errors: {results}"
+        )
 
 
 class TestFullLifecycle:

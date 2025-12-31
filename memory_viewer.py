@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Web viewer for memories - accessible in browser."""
+
 from __future__ import annotations
 
 import json
-from flask import Flask, render_template_string, request
 from pathlib import Path
 
 import lancedb
+from flask import Flask, render_template_string, request
 
 app = Flask(__name__)
 DB_PATH = Path.home() / ".memory-mcp" / "lancedb-memory"
@@ -161,4 +162,4 @@ def index():
 
 if __name__ == "__main__":
     print("Open http://localhost:5000 in your browser")
-    app.run(port=5000, debug=True)
+    app.run(port=5000)
