@@ -16,7 +16,8 @@ def get_memories() -> list[dict]:
     """Fetch all memories."""
     db = lancedb.connect(str(DB_PATH))
     table = db.open_table("memories")
-    return table.to_pydict()
+    arrow_table = table.to_arrow()
+    return arrow_table.to_pylist()
 
 
 HTML = """
