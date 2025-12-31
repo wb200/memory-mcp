@@ -1,6 +1,6 @@
 # Memory-MCP Server
 
-**Version**: 3.5.0  
+**Version**: 3.6.0  
 **Status**: Production-Ready  
 **License**: MIT
 
@@ -787,48 +787,100 @@ The test database is automatically created and wiped before each test run. It's 
 
 ## Web Viewer
 
-A browser-based memory viewer is included for human access:
+A beautiful, always-on browser interface for browsing your memory database with advanced filtering and search capabilities.
+
+### Features
+
+- 🎨 **Color-coded categories** - Visual distinction between PATTERN, CONFIG, DEBUG, etc.
+- 🔍 **Dual search modes** - Filter by project AND keyword simultaneously
+- 📊 **Pagination** - Smooth navigation through large memory sets
+- 🏷️ **Tag display** - See all tags and metadata at a glance
+- ⚡ **Real-time updates** - Always reflects current database state
+- 🌐 **Project filtering** - Quickly isolate memories from specific codebases
+
+### Quick Start (Manual)
 
 ```bash
-# Install with Flask
+# Install Flask (one-time)
 uv add --group optional flask
 
 # Run the viewer
 uv run memory-viewer
-# Or: python memory_viewer.py
 
-# Open in browser
-open http://localhost:5000
+# Access at http://localhost:5000
 ```
 
-The viewer shows:
-- All memories with category color coding
-- Search/filter functionality by project and keyword
-- Tags and metadata display
-- Pagination for large memory sets
+### **⭐ Recommended: Always-On Service**
 
-### Run as Persistent Service
+Run the memory viewer as a persistent background service that:
+- ✅ **Survives terminal closures** - No more accidentally killing the viewer
+- ✅ **Auto-starts on boot** - Available immediately after system restart  
+- ✅ **Auto-restarts on crash** - Built-in systemd recovery
+- ✅ **Zero maintenance** - Set it and forget it
+- ✅ **Integrated logging** - All output captured in systemd journal
 
-Keep the viewer always running (survives terminal closures):
+**One-command setup:**
 
 ```bash
-# Install as systemd user service
+# Install and start the service
 ./install-service.sh
 
-# Enable auto-start on boot (optional)
+# Enable 24/7 always-on mode (survives logout/reboot)
 loginctl enable-linger $USER
-
-# Access anytime at http://localhost:5000
 ```
 
-Service management:
+**That's it!** Access your memories anytime at **http://localhost:5000** 🚀
+
+### Service Management
+
 ```bash
-systemctl --user status memory-viewer   # Check status
-systemctl --user restart memory-viewer  # Restart
-journalctl --user -u memory-viewer -f   # View logs
+# Check status and uptime
+systemctl --user status memory-viewer
+
+# Restart after code updates
+systemctl --user restart memory-viewer
+
+# View real-time logs
+journalctl --user -u memory-viewer -f
+
+# Stop the service
+systemctl --user stop memory-viewer
+
+# Uninstall completely
+./uninstall-service.sh
 ```
 
-See [SERVICE.md](SERVICE.md) for detailed service documentation.
+### Performance Impact
+
+The always-on service is lightweight and designed for 24/7 operation:
+
+| Resource | Usage | Notes |
+|----------|-------|-------|
+| **Memory** | ~130MB | Flask app + Python runtime |
+| **CPU** | <1% idle | Only active during page loads |
+| **Disk** | Negligible | Reads from existing LanceDB |
+| **Network** | Local only | Binds to 127.0.0.1:5000 |
+
+### Advanced Configuration
+
+See [SERVICE.md](SERVICE.md) for:
+- Custom port configuration
+- Production WSGI server setup (Gunicorn/uWSGI)
+- Troubleshooting service issues
+- Log rotation and monitoring
+- Security considerations
+
+### Why Use the Service vs Manual?
+
+| Scenario | Manual Run | Always-On Service |
+|----------|-----------|-------------------|
+| Quick check | ✅ Perfect | 🔶 Overkill |
+| Daily use | 🔶 Annoying to restart | ✅ Always ready |
+| Shared machine | ❌ Stops on logout | ✅ Keeps running |
+| Development workflow | 🔶 Tab clutter | ✅ Clean workspace |
+| Team access | ❌ Unreliable | ✅ Guaranteed uptime |
+
+**Bottom line:** If you check memories more than once a day, the service pays for itself in convenience.
 
 ---
 
@@ -978,6 +1030,7 @@ MIT License - See LICENSE file.
 ---
 
 **Version History**:
+- **v3.6.0** - Always-on web viewer with systemd service support, linger mode for 24/7 availability, legacy project ID fallback for backward compatibility
 - **v3.5.0** - Renamed MCP server from `droid-memory` to `memory` (agent-agnostic), fixed `hookEventName` camelCase bug, silent context injection (removed verbose stderr)
 - **v3.4.0** - Fixed hook configuration: SessionStart event (not UserPromptSubmit) for memory recall on `/resume`, JSON output format for context injection, comprehensive hook documentation
 - **v3.3.0** - Project-based hooks, dual hooks (auto-save + session start recall)
