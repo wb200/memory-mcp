@@ -426,9 +426,36 @@ async def smart_summarize(content: str, category: str = "INSIGHT") -> dict[str, 
 # =============================================================================
 
 
+def _normalize_git_url(url: str) -> str:
+    """Normalize git URLs to canonical format: provider.com/owner/repo
+    
+    Examples:
+        git@github.com:wb200/memory-mcp.git -> github.com/wb200/memory-mcp
+        https://github.com/wb200/memory-mcp.git -> github.com/wb200/memory-mcp
+        git@gitlab.com:owner/project -> gitlab.com/owner/project
+    """
+    import re
+    
+    # Remove .git suffix
+    url = url.removesuffix('.git')
+    
+    # SSH format: git@github.com:owner/repo -> github.com/owner/repo
+    ssh_match = re.match(r'git@([^:]+):(.+)', url)
+    if ssh_match:
+        return f"{ssh_match.group(1)}/{ssh_match.group(2)}"
+    
+    # HTTPS format: https://github.com/owner/repo -> github.com/owner/repo
+    https_match = re.match(r'https?://(.+)', url)
+    if https_match:
+        return https_match.group(1)
+    
+    # Already normalized or unknown format
+    return url
+
+
 @lru_cache(maxsize=1)
 def get_project_id() -> str:
-    """Get current project identifier from git or cwd. Cached per session."""
+    """Get normalized project identifier from git or cwd. Cached per session."""
     try:
         result = subprocess.run(
             ["git", "config", "--get", "remote.origin.url"],
@@ -437,7 +464,7 @@ def get_project_id() -> str:
             timeout=2,
         )
         if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+            return _normalize_git_url(result.stdout.strip())
     except Exception:  # noqa: S110 - git may not be available
         pass
     return str(Path.cwd())

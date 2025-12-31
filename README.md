@@ -1,6 +1,6 @@
 # Memory-MCP Server
 
-**Version**: 3.6.0  
+**Version**: 3.7.0  
 **Status**: Production-Ready  
 **License**: MIT
 
@@ -715,6 +715,37 @@ With the hook configured, after you fix a bug:
 
 ---
 
+## Project ID Migration
+
+If you have existing memories from before v3.7.0, you may have duplicate project IDs in different formats:
+- `git@github.com:owner/repo.git` (SSH)
+- `https://github.com/owner/repo.git` (HTTPS)
+- `/home/user/projects/repo` (path)
+
+Run the migration script to normalize all git URLs:
+
+```bash
+# Preview changes (recommended first)
+uv run migrate_project_ids.py --dry-run
+
+# Apply migration
+uv run migrate_project_ids.py
+```
+
+**Example output:**
+```
+2 memories: git@github.com:wb200/memory-mcp.git
+     -> github.com/wb200/memory-mcp
+
+✓ Migration complete! Updated 2 memories
+```
+
+After migration, all git URLs use canonical format: `github.com/owner/repo`
+
+**Note:** Path-based project IDs (e.g., `/home/user/projects/repo`) are preserved for backward compatibility with legacy memories.
+
+---
+
 ## Testing
 
 ### Run All Tests
@@ -1030,6 +1061,7 @@ MIT License - See LICENSE file.
 ---
 
 **Version History**:
+- **v3.7.0** - Project ID normalization: git URLs now use canonical format (github.com/owner/repo), migration script for existing memories, eliminates duplicate project fragmentation
 - **v3.6.0** - Always-on web viewer with systemd service support, linger mode for 24/7 availability, legacy project ID fallback for backward compatibility
 - **v3.5.0** - Renamed MCP server from `droid-memory` to `memory` (agent-agnostic), fixed `hookEventName` camelCase bug, silent context injection (removed verbose stderr)
 - **v3.4.0** - Fixed hook configuration: SessionStart event (not UserPromptSubmit) for memory recall on `/resume`, JSON output format for context injection, comprehensive hook documentation

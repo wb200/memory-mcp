@@ -124,6 +124,25 @@ def get_table():
     return _table
 
 
+def _normalize_git_url(url: str) -> str:
+    """Normalize git URLs to canonical format: provider.com/owner/repo"""
+    import re
+    
+    url = url.removesuffix('.git')
+    
+    # SSH format: git@github.com:owner/repo -> github.com/owner/repo
+    ssh_match = re.match(r'git@([^:]+):(.+)', url)
+    if ssh_match:
+        return f"{ssh_match.group(1)}/{ssh_match.group(2)}"
+    
+    # HTTPS format: https://github.com/owner/repo -> github.com/owner/repo
+    https_match = re.match(r'https?://(.+)', url)
+    if https_match:
+        return https_match.group(1)
+    
+    return url
+
+
 def get_project_id():
     try:
         result = subprocess.run(
@@ -133,7 +152,7 @@ def get_project_id():
             timeout=2,
         )
         if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+            return _normalize_git_url(result.stdout.strip())
     except Exception:  # noqa: S110 - git may not be available
         pass
     return str(Path.cwd())
