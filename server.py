@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 class Config:
     """Server configuration with sensible defaults."""
 
-    db_path: Path = Path(os.environ.get("DROID_MEMORY_DB_PATH", Path.home() / ".factory" / "lancedb-memory"))
+    db_path: Path = Path(os.environ.get("DROID_MEMORY_DB_PATH", Path.home() / ".memory-mcp" / "lancedb-memory"))
     table_name: str = "memories"
     embedding_model: str = os.environ.get("EMBEDDING_MODEL", "qwen3-embedding:0.6b")
     embedding_dim: int = int(os.environ.get("EMBEDDING_DIM", "1024"))
