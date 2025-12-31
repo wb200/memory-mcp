@@ -17,20 +17,21 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 import lancedb
 import numpy as np
 from lancedb.pydantic import LanceModel, Vector
 
-
 # =============================================================================
 # Configuration (matches MCP server - uses env vars)
 # =============================================================================
 
+
 @dataclass(frozen=True, slots=True)
 class Config:
-    db_path: Path = Path(os.environ.get("LANCEDB_MEMORY_PATH", Path.home() / ".memory-mcp" / "lancedb-memory"))
+    db_path: Path = Path(
+        os.environ.get("LANCEDB_MEMORY_PATH", Path.home() / ".memory-mcp" / "lancedb-memory")
+    )
     table_name: str = "memories"
     embedding_model: str = os.environ.get("EMBEDDING_MODEL", "qwen3-embedding:0.6b")
     embedding_dim: int = int(os.environ.get("EMBEDDING_DIM", "1024"))
@@ -91,6 +92,7 @@ def get_genai_client():
     global _genai_client
     if _genai_client is None:
         from google import genai
+
         _genai_client = genai.Client(api_key=_get_api_key())
     return _genai_client
 
@@ -132,7 +134,7 @@ def get_project_id():
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except Exception:
+    except Exception:  # noqa: S110 - git may not be available
         pass
     return str(Path.cwd())
 
@@ -148,7 +150,7 @@ def expires_iso():
 def log(message: str, level: str = "INFO"):
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().isoformat()
-    with open(LOG_PATH, "a") as f:
+    with LOG_PATH.open("a") as f:
         f.write(f"[{timestamp}] {level}: {message}\n")
 
 
@@ -193,7 +195,7 @@ def _compute_embedding_ollama(text: str) -> list[float] | None:
         # Handle dimension mismatch by truncation/padding
         if len(embedding) != CONFIG.embedding_dim:
             if len(embedding) > CONFIG.embedding_dim:
-                embedding = embedding[:CONFIG.embedding_dim]
+                embedding = embedding[: CONFIG.embedding_dim]
             else:
                 padding = np.zeros(CONFIG.embedding_dim - len(embedding))
                 embedding = np.concatenate([embedding, padding])
@@ -209,14 +211,14 @@ def _compute_embedding_google(text: str, task_type: str) -> list[float] | None:
     """Generate embedding using Google Genai API (fallback)."""
     try:
         from google.genai import types
+
         client = get_genai_client()
         response = client.models.embed_content(
             model="gemini-embedding-001",
             contents=text,
             config=types.EmbedContentConfig(
-                task_type=task_type,
-                output_dimensionality=CONFIG.embedding_dim
-            )
+                task_type=task_type, output_dimensionality=CONFIG.embedding_dim
+            ),
         )
         embedding = np.array(response.embeddings[0].values)
         norm = np.linalg.norm(embedding)
@@ -254,7 +256,7 @@ def compute_embedding(text: str, task_type: str = "SEMANTIC_SIMILARITY"):
 def read_recent_context(transcript_path: str, num_messages: int = 5) -> str:
     try:
         messages = []
-        with open(transcript_path, "r") as f:
+        with Path(transcript_path).open() as f:
             for line in f:
                 try:
                     entry = json.loads(line.strip())
@@ -276,7 +278,9 @@ def read_recent_context(transcript_path: str, num_messages: int = 5) -> str:
         return ""
 
 
-def judge_memory_worthiness(tool_name: str, tool_input: dict, tool_response: dict, context: str) -> dict | None:
+def judge_memory_worthiness(
+    tool_name: str, tool_input: dict, tool_response: dict, context: str
+) -> dict | None:
     prompt = f"""Analyze this Droid action and determine if it contains a memory-worthy insight.
 
 ACTION:
@@ -312,7 +316,7 @@ If worthy, respond with valid JSON:
 }}
 
 Respond ONLY with JSON, no other text."""
-    
+
     try:
         client = get_genai_client()
         response = client.models.generate_content(model=CONFIG.llm_model, contents=prompt)
@@ -335,7 +339,7 @@ def check_similar_exists(content: str):
     embedding = compute_embedding(content)
     if embedding is None:
         return False, None, None
-    
+
     try:
         table = get_table()
         results = table.search(embedding).metric("cosine").limit(1).to_list()
@@ -354,10 +358,10 @@ def save_memory(content: str, category: str, tags: list, project_id: str) -> str
     if embedding is None:
         log(f"Failed to generate embedding for: {content[:100]}...", "ERROR")
         return None
-    
+
     table = get_table()
     memory_id = uuid.uuid4().hex
-    
+
     memory = Memory(
         id=memory_id,
         content=content,
@@ -367,9 +371,9 @@ def save_memory(content: str, category: str, tags: list, project_id: str) -> str
         project_id=project_id,
         created_at=now_iso(),
         updated_at=now_iso(),
-        expires_at=expires_iso()
+        expires_at=expires_iso(),
     )
-    
+
     try:
         table.add([memory.model_dump()])
         log(f"Saved memory {memory_id[:8]}...: [{category}] {content[:100]}...", "INFO")
@@ -390,47 +394,47 @@ def main():
     except json.JSONDecodeError as e:
         log(f"Invalid JSON input: {e}", "ERROR")
         sys.exit(1)
-    
+
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
     tool_response = input_data.get("tool_response", {})
     transcript_path = input_data.get("transcript_path", "")
-    cwd = input_data.get("cwd", os.getcwd())
-    
+    cwd = input_data.get("cwd", str(Path.cwd()))
+
     allowed_tools = ["Edit", "Write", "Bash", "MultiEdit"]
     is_tiger_mcp = tool_name.startswith("mcp__tiger__")
     if tool_name not in allowed_tools and not is_tiger_mcp:
         sys.exit(0)
-    
+
     if check_rate_limit():
         log(f"Skipping due to rate limit (tool: {tool_name})")
         sys.exit(0)
-    
+
     context = read_recent_context(transcript_path) if transcript_path else ""
-    
+
     log(f"Judging action: {tool_name}")
     result = judge_memory_worthiness(tool_name, tool_input, tool_response, context)
-    
+
     if result is None:
         log(f"Action not memory-worthy: {tool_name}")
         sys.exit(0)
-    
+
     similar_exists, similarity, existing_snippet = check_similar_exists(result["content"])
     if similar_exists:
         log(f"Skipping duplicate (similarity: {similarity:.2%}): {existing_snippet}...")
         sys.exit(0)
-    
+
     memory_id = save_memory(
         content=result["content"],
         category=result["category"],
         tags=result.get("tags", []),
-        project_id=cwd
+        project_id=cwd,
     )
-    
+
     if memory_id:
         update_rate_limit()
         log(f"Auto-saved memory {memory_id[:8]}... from {tool_name}")
-    
+
     sys.exit(0)
 
 

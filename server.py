@@ -44,7 +44,9 @@ if TYPE_CHECKING:
 class Config:
     """Server configuration with sensible defaults."""
 
-    db_path: Path = Path(os.environ.get("LANCEDB_MEMORY_PATH", Path.home() / ".memory-mcp" / "lancedb-memory"))
+    db_path: Path = Path(
+        os.environ.get("LANCEDB_MEMORY_PATH", Path.home() / ".memory-mcp" / "lancedb-memory")
+    )
     table_name: str = "memories"
     embedding_model: str = os.environ.get("EMBEDDING_MODEL", "qwen3-embedding:0.6b")
     embedding_dim: int = int(os.environ.get("EMBEDDING_DIM", "1024"))
@@ -174,9 +176,7 @@ def get_reranker() -> CrossEncoderReranker:
     if _reranker is None:
         with _lock:
             if _reranker is None:  # Double-check after acquiring lock
-                _reranker = CrossEncoderReranker(
-                    model_name="mixedbread-ai/mxbai-reranker-base-v2"
-                )
+                _reranker = CrossEncoderReranker(model_name="mixedbread-ai/mxbai-reranker-base-v2")
     return _reranker
 
 
@@ -202,10 +202,7 @@ def _find_memory_by_id(
     safe_id = _escape_filter_value(memory_id)
     if len(memory_id) < 32:
         results = (
-            table.search()
-            .where(f"id LIKE '{safe_id}%'")
-            .limit(ID_PREFIX_MATCH_LIMIT)
-            .to_list()
+            table.search().where(f"id LIKE '{safe_id}%'").limit(ID_PREFIX_MATCH_LIMIT).to_list()
         )
         if not results:
             return None, f"Memory {memory_id} not found"
@@ -241,7 +238,9 @@ async def init_database() -> None:
         has_fts = any("fts" in str(idx).lower() or "content" in str(idx).lower() for idx in indices)
         if not has_fts:
             table.create_fts_index("content", use_tantivy=True, replace=True)
-            print("[memory-mcp] Tantivy-based FTS index (BM25) created on 'content'", file=sys.stderr)
+            print(
+                "[memory-mcp] Tantivy-based FTS index (BM25) created on 'content'", file=sys.stderr
+            )
         else:
             print("[memory-mcp] FTS index already exists", file=sys.stderr)
     except Exception as e:
@@ -296,7 +295,7 @@ def _compute_embedding_ollama(text: str) -> list[float] | None:
         # Handle dimension mismatch by truncation/padding
         if len(embedding) != CONFIG.embedding_dim:
             if len(embedding) > CONFIG.embedding_dim:
-                embedding = embedding[:CONFIG.embedding_dim]
+                embedding = embedding[: CONFIG.embedding_dim]
             else:
                 # Pad with zeros
                 padding = np.zeros(CONFIG.embedding_dim - len(embedding))
@@ -340,7 +339,7 @@ def _compute_embedding_hash_fallback(text: str) -> list[float]:
     # Create deterministic hash of content
     h = hashlib.sha256(text.encode()).digest()
     # Use first 768 bytes and normalize to [-1, 1]
-    values = [(b - 128) / 128.0 for b in h[:CONFIG.embedding_dim]]
+    values = [(b - 128) / 128.0 for b in h[: CONFIG.embedding_dim]]
 
     # Normalize to unit length
     norm = np.linalg.norm(values)
@@ -374,7 +373,9 @@ def _compute_embedding_sync(
 
 
 @lru_cache(maxsize=128)
-def _compute_embedding_cached(text: str, task_type: str = "SEMANTIC_SIMILARITY") -> tuple[float, ...] | None:
+def _compute_embedding_cached(
+    text: str, task_type: str = "SEMANTIC_SIMILARITY"
+) -> tuple[float, ...] | None:
     """Cached embedding computation to avoid redundant API calls."""
     result = _compute_embedding_sync(text, task_type)
     return tuple(result) if result else None
@@ -384,7 +385,10 @@ async def get_embedding(text: str, task_type: str = "SEMANTIC_SIMILARITY") -> li
     """Generate embedding asynchronously with LRU cache."""
     cached = _compute_embedding_cached(text, task_type)
     if cached is None:
-        print(f"[memory-mcp] Embedding cache miss/failed for content length={len(text)}", file=sys.stderr)
+        print(
+            f"[memory-mcp] Embedding cache miss/failed for content length={len(text)}",
+            file=sys.stderr,
+        )
     return list(cached) if cached else None
 
 
@@ -454,18 +458,20 @@ def _candidates_to_arrow(candidates: list[dict]) -> pa.Table:
     We include both 'text' (for reranker) and 'content' (for display).
     Also preserve _distance for similarity display in results.
     """
-    return pa.table({
-        "id": [r["id"] for r in candidates],
-        "text": [r["content"] for r in candidates],  # Reranker expects 'text'
-        "content": [r["content"] for r in candidates],  # Keep for result display
-        "vector": [r["vector"] for r in candidates],
-        "category": [r["category"] for r in candidates],
-        "tags": [r["tags"] for r in candidates],
-        "project_id": [r["project_id"] for r in candidates],
-        "created_at": [r["created_at"] for r in candidates],
-        "updated_at": [r["updated_at"] for r in candidates],
-        "_distance": [r.get("_distance", 0.0) for r in candidates],  # Preserve for display
-    })
+    return pa.table(
+        {
+            "id": [r["id"] for r in candidates],
+            "text": [r["content"] for r in candidates],  # Reranker expects 'text'
+            "content": [r["content"] for r in candidates],  # Keep for result display
+            "vector": [r["vector"] for r in candidates],
+            "category": [r["category"] for r in candidates],
+            "tags": [r["tags"] for r in candidates],
+            "project_id": [r["project_id"] for r in candidates],
+            "created_at": [r["created_at"] for r in candidates],
+            "updated_at": [r["updated_at"] for r in candidates],
+            "_distance": [r.get("_distance", 0.0) for r in candidates],  # Preserve for display
+        }
+    )
 
 
 def _rrf_fusion(vector_results: list[dict], fts_results: list[dict], k: int = 60) -> list[dict]:
@@ -542,7 +548,7 @@ async def memory_save(
 
     embedding = await get_embedding(content)
     if embedding is None:
-        return f"Error: Failed to generate embedding. Check API key configuration and network connectivity."
+        return "Error: Failed to generate embedding. Check API key configuration and network connectivity."
 
     table = get_table()
 
@@ -650,7 +656,7 @@ async def _recall(query: str, category: str | None, limit: int, project_scope: b
     vector_results = []
     fts_results = []
     embedding = await get_embedding(query, task_type="RETRIEVAL_QUERY")
-    
+
     table = get_table()
     reranker = get_reranker()
 
@@ -905,8 +911,10 @@ async def memory_stats() -> str:
     try:
         indices = table.list_indices()
         has_vector_index = any("ivf" in str(idx).lower() for idx in indices)
-        has_fts_index = any("fts" in str(idx).lower() or "content" in str(idx).lower() for idx in indices)
-    except Exception:
+        has_fts_index = any(
+            "fts" in str(idx).lower() or "content" in str(idx).lower() for idx in indices
+        )
+    except Exception:  # noqa: S110 - index listing may not be supported
         pass
 
     db_size = sum(f.stat().st_size for f in CONFIG.db_path.rglob("*") if f.is_file()) / 1024
@@ -950,7 +958,7 @@ async def memory_health() -> str:
         indices = table.list_indices()
         has_fts = any("fts" in str(idx).lower() or "content" in str(idx).lower() for idx in indices)
         has_vector = any("ivf" in str(idx).lower() for idx in indices)
-    except Exception:
+    except Exception:  # noqa: S110 - index listing may not be supported
         pass
 
     db_size = sum(f.stat().st_size for f in CONFIG.db_path.rglob("*") if f.is_file()) / 1024
@@ -962,8 +970,8 @@ async def memory_health() -> str:
         f"FTS index: {'✓ BM25 enabled' if has_fts else '✗ Not enabled (requires tantivy-py)'}",
         f"Vector index: {'✓ IVF-PQ' if has_vector else 'Flat (brute-force)'}",
         f"TTL: {CONFIG.ttl_days} days",
-        f"Search: Hybrid (vector + BM25 RRF) + CrossEncoder rerank",
-        f"Embedding cache: LRU (maxsize=128)",
+        "Search: Hybrid (vector + BM25 RRF) + CrossEncoder rerank",
+        "Embedding cache: LRU (maxsize=128)",
     ]
 
     # Check if cleanup task is running
@@ -971,7 +979,7 @@ async def memory_health() -> str:
     if _cleanup_task is not None and not _cleanup_task.done():
         lines.append(f"TTL cleanup: ✓ Active (every {CLEANUP_INTERVAL_HOURS}h)")
     else:
-        lines.append(f"TTL cleanup: ✗ Not active")
+        lines.append("TTL cleanup: ✗ Not active")
 
     return "\n".join(lines)
 
@@ -988,7 +996,7 @@ async def _cleanup_expired_memories():
         try:
             table = get_table()
             now = datetime.now().isoformat()
-            deleted = table.delete(f"expires_at IS NOT NULL AND expires_at < '{now}'")
+            table.delete(f"expires_at IS NOT NULL AND expires_at < '{now}'")
             print(f"[memory-mcp] Cleaned expired memories at {now}", file=sys.stderr)
         except Exception as e:
             print(f"[memory-mcp] Cleanup error: {e}", file=sys.stderr)

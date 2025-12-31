@@ -27,6 +27,7 @@ if secrets_path.exists():
 TEST_DB_PATH = Path.home() / ".factory" / "lancedb-memory-test"
 os.environ["DROID_MEMORY_DB_PATH"] = str(TEST_DB_PATH)
 
+import server as server_module
 from server import (
     CONFIG,
     VALID_CATEGORIES,
@@ -40,7 +41,6 @@ from server import (
     memory_update,
     smart_summarize,
 )
-import server as server_module
 
 RANDOM_WORDS = [
     "quantum",
@@ -66,8 +66,10 @@ RANDOM_WORDS = [
 
 def unique_content(base: str) -> str:
     """Generate semantically unique content to avoid deduplication."""
-    random_phrase = " ".join(random.sample(RANDOM_WORDS, 4))
-    return f"{random_phrase}: {base} [{uuid.uuid4().hex[:8]}]"
+    # Use more words and a longer UUID to ensure uniqueness
+    random_phrase = " ".join(random.sample(RANDOM_WORDS, 6))
+    unique_id = uuid.uuid4().hex
+    return f"{random_phrase} - {base} - unique context {unique_id}"
 
 
 @pytest.fixture(autouse=True)
@@ -76,6 +78,7 @@ async def setup_db():
     # Clean up any existing test database first
     os.environ["DROID_MEMORY_DB_PATH"] = str(TEST_DB_PATH)
     import shutil
+
     server_module._db = None
     server_module._table = None
     if TEST_DB_PATH.exists():
@@ -334,11 +337,13 @@ class TestConcurrency:
         # Mix of operations - build list explicitly to avoid variable scope issues
         tasks = []
         for i in range(3):
-            tasks.extend([
-                memory_save(unique_content(f"Stress {i}"), category="INSIGHT"),
-                memory_recall("stress test"),
-                memory_stats(),
-            ])
+            tasks.extend(
+                [
+                    memory_save(unique_content(f"Stress {i}"), category="INSIGHT"),
+                    memory_recall("stress test"),
+                    memory_stats(),
+                ]
+            )
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
         errors = [r for r in results if isinstance(r, Exception)]
