@@ -424,12 +424,19 @@ The `hooks/memory-extractor.py` hook:
 
 **For Factory/Droid users:**
 
-1. Symlink or copy the hook:
+1. **Update the shebang** in `hooks/memory-extractor.py` to point to your venv:
+```bash
+# Edit the first line of hooks/memory-extractor.py to:
+#!/path/to/memory-mcp/.venv/bin/python3
+```
+> **Important**: The hook requires dependencies (lancedb, numpy, etc.) from the project's virtual environment. Using `#!/usr/bin/env python3` will fail with `ModuleNotFoundError` unless those packages are installed system-wide.
+
+2. Symlink or copy the hook:
 ```bash
 ln -s /path/to/memory-mcp/hooks/memory-extractor.py ~/.factory/hooks/
 ```
 
-2. Configure in `~/.factory/settings.json`:
+3. Configure in `~/.factory/settings.json`:
 ```json
 {
   "hooks": {
@@ -449,7 +456,7 @@ ln -s /path/to/memory-mcp/hooks/memory-extractor.py ~/.factory/hooks/
 }
 ```
 
-3. Make executable:
+4. Make executable:
 ```bash
 chmod +x ~/.factory/hooks/memory-extractor.py
 ```
