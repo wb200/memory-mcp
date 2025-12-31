@@ -1,6 +1,6 @@
 # Memory-MCP Server
 
-**Version**: 3.2.0  
+**Version**: 3.3.0  
 **Status**: Production-Ready  
 **License**: MIT
 
@@ -75,7 +75,7 @@ Recall Memory → Hybrid Search (Vector + BM25) → RRF Fusion → Neural Rerank
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      MEMORY-MCP v3.2.0                           │
+│                      MEMORY-MCP v3.3.0                           │
 └─────────────────────────────────────────────────────────────────┘
 
    Agent/User
