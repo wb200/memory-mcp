@@ -131,7 +131,7 @@ Recall Memory → Hybrid Search (Vector + BM25) → RRF Fusion → Neural Rerank
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/memory-mcp.git
+git clone https://github.com/wb200/memory-mcp.git
 cd memory-mcp
 uv sync
 
@@ -167,16 +167,11 @@ memory_recall(query="test")
 ### Step 1: Clone and Setup
 
 ```bash
-git clone https://github.com/yourusername/memory-mcp.git
+git clone https://github.com/wb200/memory-mcp.git
 cd memory-mcp
 
 # Using uv (recommended)
 uv sync
-
-# Or using pip
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
 ### Step 2: Install Ollama (Recommended for Privacy)
@@ -698,7 +693,7 @@ The test database is automatically created and wiped before each test run. It's 
 ### Current Test Results
 
 ```
-30 passed in 37s
+30 passed in ~23s
 ```
 
 ### Test Suites
