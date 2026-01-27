@@ -20,11 +20,10 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import lancedb
-import numpy as np
 from lancedb.pydantic import LanceModel, Vector
 
 # =============================================================================
@@ -133,19 +132,19 @@ def get_table():
 def _normalize_git_url(url: str) -> str:
     """Normalize git URLs to canonical format: provider.com/owner/repo"""
     import re
-    
+
     url = url.removesuffix('.git')
-    
+
     # SSH format: git@github.com:owner/repo -> github.com/owner/repo
     ssh_match = re.match(r'git@([^:]+):(.+)', url)
     if ssh_match:
         return f"{ssh_match.group(1)}/{ssh_match.group(2)}"
-    
+
     # HTTPS format: https://github.com/owner/repo -> github.com/owner/repo
     https_match = re.match(r'https?://(.+)', url)
     if https_match:
         return https_match.group(1)
-    
+
     return url
 
 
@@ -195,7 +194,7 @@ def get_project_memories(project_id: str, limit: int = 100) -> list[dict]:
     # Get possible project identifiers (git remote or path)
     project_dir = os.environ.get("FACTORY_PROJECT_DIR") or str(Path(__file__).parent)
     project_ids = {project_id}
-    
+
     # If using git remote, also check for path-based project_id (legacy memories)
     if "github.com" in project_id:
         project_ids.add(project_dir)
@@ -382,9 +381,9 @@ def main():
     script_path = Path(__file__).resolve()
     hooks_dir = script_path.parent
     project_dir = hooks_dir.parent.parent  # Go up: hooks -> .factory -> project
-    
+
     debug_log = hooks_dir / "hook-debug.log"
-    
+
     def log_debug(msg):
         timestamp = datetime.now().isoformat()
         try:
@@ -392,9 +391,9 @@ def main():
                 f.write(f"[{timestamp}] {msg}\n")
         except Exception:
             pass
-    
+
     log_debug("=== Hook invoked ===")
-    
+
     # Read hook input from stdin (Droid passes session info)
     input_data = {}
     is_new_session = False
@@ -403,14 +402,14 @@ def main():
         log_debug(f"Received stdin: {json.dumps(input_data)[:500]}")
         if input_data:
             hook_event = input_data.get("hookEventName", "")  # Factory uses camelCase
-            
+
             # For SessionStart events
             if hook_event == "SessionStart":
                 source = input_data.get("source", "")
                 log_debug(f"SessionStart event (source: {source})")
                 print(f"[session-start-recall] Received {hook_event} (source: {source})", file=sys.stderr)
                 is_new_session = True
-            
+
             # For UserPromptSubmit - detect session start patterns
             elif hook_event == "UserPromptSubmit":
                 prompt = input_data.get("prompt", "").strip()
@@ -428,7 +427,7 @@ def main():
     except json.JSONDecodeError as e:
         log_debug(f"JSON decode error: {e}")
         pass  # No stdin data, continue anyway
-    
+
     # Only run if this is a new session
     if not is_new_session:
         log_debug("No new session detected, exiting")
@@ -464,7 +463,7 @@ def main():
 
     # Build context output
     context_parts = []
-    
+
     # Add project highlights
     border = "═" * 60
     context_parts.append(f"\n{border}")
@@ -472,12 +471,12 @@ def main():
     context_parts.append(f"{border}")
     context_parts.append(f"\n{summary}\n")
     context_parts.append(f"{border}\n")
-    
+
     # Add recent memories
     context_parts.append(format_recent_memories(recent_memories))
-    
+
     additional_context = "\n".join(context_parts)
-    
+
     # Output JSON for SessionStart hook (per Factory docs)
     # This injects context into the agent via hookSpecificOutput.additionalContext
     output = {

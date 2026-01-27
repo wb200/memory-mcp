@@ -74,8 +74,13 @@ HTML = """
         .tags { margin-top: 8px; }
         .tag { background: #0f3460; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-right: 5px; }
         .meta { color: #888; font-size: 12px; margin-top: 8px; }
-        .search { margin-bottom: 20px; }
-        input { padding: 10px; width: 100%; border-radius: 5px; border: none; background: #0f3460; color: #fff; }
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search { flex: 1; min-width: 300px; }
+        .project-filter { min-width: 200px; }
+        input, select { padding: 10px; border-radius: 5px; border: none; background: #0f3460; color: #fff; font-size: 14px; }
+        input { width: 100%; }
+        select { cursor: pointer; }
+        select:hover { background: #16213e; }
     </style>
 </head>
 <body>
@@ -83,7 +88,7 @@ HTML = """
         <h1>Memory Viewer</h1>
         <div class="pagination">
             {% if page > 1 %}
-            <a href="/?page={{ page-1 }}">← Prev</a>
+            <a href="/?page={{ page-1 }}&project={{ selected_project }}">← Prev</a>
             {% else %}
             <a class="disabled">← Prev</a>
             {% endif %}
@@ -94,20 +99,32 @@ HTML = """
             {% elif p == page %}
             <span class="current">{{ p }}</span>
             {% else %}
-            <a href="/?page={{ p }}">{{ p }}</a>
+            <a href="/?page={{ p }}&project={{ selected_project }}">{{ p }}</a>
             {% endif %}
             {% endfor %}
 
             {% if page < total_pages %}
-            <a href="/?page={{ page+1 }}">Next →</a>
+            <a href="/?page={{ page+1 }}&project={{ selected_project }}">Next →</a>
             {% else %}
             <a class="disabled">Next →</a>
             {% endif %}
         </div>
     </div>
     <p>{{ total_memories }} memories total</p>
-    <div class="search">
-        <input type="text" id="search" placeholder="Search memories..." onkeyup="filterMemories()">
+    <div class="filters">
+        <div class="project-filter">
+            <select id="projectSelect" onchange="filterByProject()">
+                <option value="all" {% if selected_project == "all" %}selected{% endif %}>All Projects</option>
+                {% for proj in projects %}
+                <option value="{{ proj.id }}" {% if selected_project == proj.id %}selected{% endif %}>
+                    {{ proj.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="search">
+            <input type="text" id="search" placeholder="Search memories..." onkeyup="filterMemories()">
+        </div>
     </div>
     <div id="memories">
         {% for m in memories %}
@@ -130,6 +147,11 @@ HTML = """
                 el.style.display = el.dataset.content.includes(q) ? 'block' : 'none';
             });
         }
+
+        function filterByProject() {
+            const project = document.getElementById('projectSelect').value;
+            window.location.href = '/?project=' + encodeURIComponent(project);
+        }
     </script>
 </body>
 </html>
@@ -141,6 +163,19 @@ def index():
     all_memories = get_memories()
     for m in all_memories:
         m["tags_list"] = json.loads(m.get("tags", "[]"))
+
+    # Get unique projects and create friendly names
+    projects_raw = sorted({m.get("project_id", "unknown") for m in all_memories})
+    projects = []
+    for proj in projects_raw:
+        # Create friendly name from project path
+        friendly = Path(proj).name if "/" in proj else proj[:50]
+        projects.append({"id": proj, "name": friendly})
+
+    # Filter by selected project
+    selected_project = request.args.get("project", "all")
+    if selected_project != "all":
+        all_memories = [m for m in all_memories if m.get("project_id") == selected_project]
 
     total = len(all_memories)
     page = int(request.args.get("page", 1))
@@ -157,6 +192,8 @@ def index():
         total_pages=total_pages,
         total_memories=total,
         page_links=page_links,
+        projects=projects,
+        selected_project=selected_project,
     )
 
 

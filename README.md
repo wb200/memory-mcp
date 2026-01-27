@@ -1,6 +1,6 @@
 # Memory-MCP Server
 
-**Version**: 3.7.0  
+**Version**: 3.8.0  
 **Status**: Production-Ready  
 **License**: MIT
 
@@ -75,7 +75,7 @@ Recall Memory → Hybrid Search (Vector + BM25) → RRF Fusion → Neural Rerank
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      MEMORY-MCP v3.5.0                           │
+│                      MEMORY-MCP v3.8.0                           │
 └─────────────────────────────────────────────────────────────────┘
 
    Agent/User
@@ -433,9 +433,15 @@ The hook system enables **automatic memory extraction** from agent actions and *
 
 **For Factory/Droid users:**
 
-1. **Hooks are located in the project folder** at `.factory/hooks/`:
-   - `memory-mcp/.factory/hooks/memory-extractor.py`
-   - `memory-mcp/.factory/hooks/session_start_recall.py`
+**⭐ Recommended: Global Hooks Installation**
+
+To enable memory capture across **all projects** (not just memory-mcp):
+
+1. **Copy hooks to global Factory hooks directory**:
+```bash
+cp /path/to/memory-mcp/.factory/hooks/memory-extractor.py ~/.factory/hooks/
+cp /path/to/memory-mcp/.factory/hooks/session_start_recall.py ~/.factory/hooks/
+```
 
 2. **Configure in `~/.factory/settings.json`**:
 ```json
@@ -447,7 +453,7 @@ The hook system enables **automatic memory extraction** from agent actions and *
         "hooks": [
           {
             "type": "command",
-            "command": "/path/to/memory-mcp/.factory/hooks/memory-extractor.py",
+            "command": "~/.factory/hooks/memory-extractor.py",
             "timeout": 30
           }
         ]
@@ -459,7 +465,7 @@ The hook system enables **automatic memory extraction** from agent actions and *
         "hooks": [
           {
             "type": "command",
-            "command": "/path/to/memory-mcp/.factory/hooks/session_start_recall.py",
+            "command": "~/.factory/hooks/session_start_recall.py",
             "timeout": 30
           }
         ]
@@ -469,7 +475,16 @@ The hook system enables **automatic memory extraction** from agent actions and *
 }
 ```
 
-> **Important**: Use **absolute paths** for hook commands. The `$FACTORY_PROJECT_DIR` variable only works when hooks are triggered from within that project directory. For global hooks that should work across all projects, use the full path to where memory-mcp is installed.
+**Why Global Installation?**
+- ✅ **Works everywhere** - Captures memories from all your projects
+- ✅ **No configuration per project** - Set up once, works forever
+- ✅ **Automatic project tagging** - Each memory tagged with project_id (git remote or cwd)
+- ✅ **Centralized updates** - Update hooks in one place
+
+**Alternative: Project-Specific Hooks** (not recommended unless you only want memories from memory-mcp project):
+- Hooks are also in `.factory/hooks/` within the project
+- Use absolute path: `/path/to/memory-mcp/.factory/hooks/memory-extractor.py`
+- Only triggers when working inside memory-mcp directory
 
 ### Factory/Droid Hook Events Reference
 
@@ -1061,6 +1076,7 @@ MIT License - See LICENSE file.
 ---
 
 **Version History**:
+- **v3.8.0** - R.A.S.I.R. code quality improvements: fixed SQL LIKE wildcard injection, added secret file permissions validation, extracted shared models (`models.py`) and utils (`utils.py`) for DRY, consolidated duplicate embedding normalization and git URL normalization, added Config validation with `__post_init__`, improved type hints, fixed all ruff violations. Documented global hooks installation for cross-project memory capture.
 - **v3.7.0** - Project ID normalization: git URLs now use canonical format (github.com/owner/repo), migration script for existing memories, eliminates duplicate project fragmentation
 - **v3.6.0** - Always-on web viewer with systemd service support, linger mode for 24/7 availability, legacy project ID fallback for backward compatibility
 - **v3.5.0** - Renamed MCP server from `droid-memory` to `memory` (agent-agnostic), fixed `hookEventName` camelCase bug, silent context injection (removed verbose stderr)

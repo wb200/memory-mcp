@@ -29,13 +29,14 @@ from typing import TYPE_CHECKING, Any
 import lancedb
 import numpy as np
 import pyarrow as pa
-from lancedb.pydantic import LanceModel, Vector
 from lancedb.rerankers import CrossEncoderReranker
 from mcp.server.fastmcp import FastMCP
 
+from models import Memory
+from utils import normalize_git_url
+
 if TYPE_CHECKING:
     from google.genai import Client as GenAIClient
-
 # =============================================================================
 # Configuration
 # =============================================================================
@@ -60,6 +61,19 @@ class Config:
     max_limit: int = 50
     fts_weight: float = 0.3  # Weight for FTS in hybrid fusion (vector gets 1 - this)
 
+    def __post_init__(self) -> None:
+        """Validate configuration values."""
+        if self.embedding_dim <= 0:
+            raise ValueError(f"embedding_dim must be positive, got {self.embedding_dim}")
+        if not 0 <= self.dedup_threshold <= 1:
+            raise ValueError(f"dedup_threshold must be 0-1, got {self.dedup_threshold}")
+        if not 0 <= self.fts_weight <= 1:
+            raise ValueError(f"fts_weight must be 0-1, got {self.fts_weight}")
+        if self.ttl_days <= 0:
+            raise ValueError(f"ttl_days must be positive, got {self.ttl_days}")
+        if self.default_limit <= 0 or self.default_limit > self.max_limit:
+            raise ValueError("default_limit must be > 0 and <= max_limit")
+
 
 CONFIG = Config()
 
@@ -74,21 +88,7 @@ CLEANUP_INTERVAL_HOURS = 24
 # LanceDB Schema
 # =============================================================================
 
-
-class Memory(LanceModel):
-    """LanceDB schema for memories with vector embeddings."""
-
-    id: str  # UUID string - thread-safe, no race conditions
-    content: str  # Indexed for FTS
-    vector: Vector(CONFIG.embedding_dim)  # type: ignore[valid-type]
-    category: str
-    tags: str  # JSON array as string
-    project_id: str
-    user_id: str | None = None
-    created_at: str
-    updated_at: str
-    expires_at: str | None = None
-
+# Memory model is now imported from models.py to avoid duplication
 
 # =============================================================================
 # Thread-Safety Lock (for singleton initialization)
@@ -110,6 +110,13 @@ def _get_api_key() -> str:
         return key
     secrets_path = Path.home() / ".secrets" / "GOOGLE_API_KEY"
     if secrets_path.exists():
+        # Check file permissions (warn if group/world readable)
+        if secrets_path.stat().st_mode & 0o077:
+            print(
+                "[memory-mcp] Warning: ~/.secrets/GOOGLE_API_KEY has loose permissions. "
+                "Run: chmod 600 ~/.secrets/GOOGLE_API_KEY",
+                file=sys.stderr,
+            )
         return secrets_path.read_text().strip()
     raise ValueError(
         "GOOGLE_API_KEY not found. Set environment variable or create ~/.secrets/GOOGLE_API_KEY. "
@@ -182,9 +189,12 @@ def get_reranker() -> CrossEncoderReranker:
     return _reranker
 
 
-def _escape_filter_value(value: str) -> str:
-    """Escape single quotes in filter values to prevent injection."""
-    return value.replace("'", "''")
+def _escape_filter_value(value: str, escape_wildcards: bool = False) -> str:
+    """Escape single quotes (and optionally LIKE wildcards) in filter values to prevent injection."""
+    result = value.replace("'", "''")
+    if escape_wildcards:
+        result = result.replace("%", "\\%").replace("_", "\\_")
+    return result
 
 
 def _normalize_category(category: str | None) -> tuple[str | None, str | None]:
@@ -201,7 +211,7 @@ def _find_memory_by_id(
     table: lancedb.table.Table, memory_id: str
 ) -> tuple[dict[str, Any] | None, str | None]:
     """Find a memory by full or partial UUID, with ambiguity detection."""
-    safe_id = _escape_filter_value(memory_id)
+    safe_id = _escape_filter_value(memory_id, escape_wildcards=True)
     if len(memory_id) < 32:
         results = (
             table.search().where(f"id LIKE '{safe_id}%'").limit(ID_PREFIX_MATCH_LIMIT).to_list()
@@ -278,6 +288,27 @@ async def init_database() -> None:
 # =============================================================================
 
 
+def _normalize_embedding(embedding: np.ndarray, target_dim: int) -> list[float]:
+    """Resize and L2-normalize embedding to target dimension.
+
+    Args:
+        embedding: Input embedding vector
+        target_dim: Target dimensionality
+
+    Returns:
+        L2-normalized embedding as list of floats
+    """
+    # Handle dimension mismatch by truncation/padding
+    if len(embedding) > target_dim:
+        embedding = embedding[:target_dim]
+    elif len(embedding) < target_dim:
+        embedding = np.pad(embedding, (0, target_dim - len(embedding)))
+
+    # L2 normalization
+    norm = np.linalg.norm(embedding)
+    return (embedding / norm).tolist() if norm > 0 else embedding.tolist()
+
+
 def _compute_embedding_ollama(text: str) -> list[float] | None:
     """Generate embedding using Ollama (local, fallback option)."""
     try:
@@ -293,18 +324,7 @@ def _compute_embedding_ollama(text: str) -> list[float] | None:
         )
         response.raise_for_status()
         embedding = np.array(response.json().get("embedding", []))
-
-        # Handle dimension mismatch by truncation/padding
-        if len(embedding) != CONFIG.embedding_dim:
-            if len(embedding) > CONFIG.embedding_dim:
-                embedding = embedding[: CONFIG.embedding_dim]
-            else:
-                # Pad with zeros
-                padding = np.zeros(CONFIG.embedding_dim - len(embedding))
-                embedding = np.concatenate([embedding, padding])
-
-        norm = np.linalg.norm(embedding)
-        return (embedding / norm).tolist() if norm > 0 else embedding.tolist()
+        return _normalize_embedding(embedding, CONFIG.embedding_dim)
     except Exception as e:
         print(f"[memory-mcp] Ollama embedding error: {e}", file=sys.stderr)
         return None
@@ -324,8 +344,7 @@ def _compute_embedding_google(text: str, task_type: str) -> list[float] | None:
             ),
         )
         embedding = np.array(response.embeddings[0].values)
-        norm = np.linalg.norm(embedding)
-        return (embedding / norm).tolist() if norm > 0 else embedding.tolist()
+        return _normalize_embedding(embedding, CONFIG.embedding_dim)
     except Exception as e:
         print(f"[memory-mcp] Google embedding error: {e}", file=sys.stderr)
         return None
@@ -426,33 +445,6 @@ async def smart_summarize(content: str, category: str = "INSIGHT") -> dict[str, 
 # =============================================================================
 
 
-def _normalize_git_url(url: str) -> str:
-    """Normalize git URLs to canonical format: provider.com/owner/repo
-    
-    Examples:
-        git@github.com:wb200/memory-mcp.git -> github.com/wb200/memory-mcp
-        https://github.com/wb200/memory-mcp.git -> github.com/wb200/memory-mcp
-        git@gitlab.com:owner/project -> gitlab.com/owner/project
-    """
-    import re
-    
-    # Remove .git suffix
-    url = url.removesuffix('.git')
-    
-    # SSH format: git@github.com:owner/repo -> github.com/owner/repo
-    ssh_match = re.match(r'git@([^:]+):(.+)', url)
-    if ssh_match:
-        return f"{ssh_match.group(1)}/{ssh_match.group(2)}"
-    
-    # HTTPS format: https://github.com/owner/repo -> github.com/owner/repo
-    https_match = re.match(r'https?://(.+)', url)
-    if https_match:
-        return https_match.group(1)
-    
-    # Already normalized or unknown format
-    return url
-
-
 @lru_cache(maxsize=1)
 def get_project_id() -> str:
     """Get normalized project identifier from git or cwd. Cached per session."""
@@ -464,7 +456,7 @@ def get_project_id() -> str:
             timeout=2,
         )
         if result.returncode == 0 and result.stdout.strip():
-            return _normalize_git_url(result.stdout.strip())
+            return normalize_git_url(result.stdout.strip())
     except Exception:  # noqa: S110 - git may not be available
         pass
     return str(Path.cwd())
@@ -480,7 +472,7 @@ def expires_iso() -> str:
     return (datetime.now() + timedelta(days=CONFIG.ttl_days)).isoformat()
 
 
-def _candidates_to_arrow(candidates: list[dict]) -> pa.Table:
+def _candidates_to_arrow(candidates: list[dict[str, Any]]) -> pa.Table:
     """Convert candidate dictionaries to PyArrow table for reranker.
 
     Note: CrossEncoderReranker expects 'text' field, not 'content'.
@@ -503,7 +495,9 @@ def _candidates_to_arrow(candidates: list[dict]) -> pa.Table:
     )
 
 
-def _rrf_fusion(vector_results: list[dict], fts_results: list[dict], k: int = 60) -> list[dict]:
+def _rrf_fusion(
+    vector_results: list[dict[str, Any]], fts_results: list[dict[str, Any]], k: int = 60
+) -> list[dict[str, Any]]:
     """Reciprocal Rank Fusion to combine vector and FTS results."""
     scores: dict[str, float] = {}
     all_results: dict[str, dict] = {}
@@ -939,7 +933,7 @@ async def memory_stats() -> str:
                 project_counts[project] = project_counts.get(project, 0) + 1
         except Exception:
             try:
-                rows = table.to_pylist()
+                rows = table.search().limit(total).to_list()
             except Exception:
                 rows = table.search().limit(total).to_list()
             for row in rows:
@@ -1061,7 +1055,7 @@ async def memory_session_start() -> str:
     # Get possible project identifiers (git remote or path)
     project_dir = str(Path.cwd())
     project_ids = {project_id}
-    
+
     # If using git remote, also check for path-based project_id (legacy memories)
     if "github.com" in project_id:
         project_ids.add(project_dir)

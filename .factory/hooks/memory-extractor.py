@@ -127,19 +127,19 @@ def get_table():
 def _normalize_git_url(url: str) -> str:
     """Normalize git URLs to canonical format: provider.com/owner/repo"""
     import re
-    
+
     url = url.removesuffix('.git')
-    
+
     # SSH format: git@github.com:owner/repo -> github.com/owner/repo
     ssh_match = re.match(r'git@([^:]+):(.+)', url)
     if ssh_match:
         return f"{ssh_match.group(1)}/{ssh_match.group(2)}"
-    
+
     # HTTPS format: https://github.com/owner/repo -> github.com/owner/repo
     https_match = re.match(r'https?://(.+)', url)
     if https_match:
         return https_match.group(1)
-    
+
     return url
 
 
